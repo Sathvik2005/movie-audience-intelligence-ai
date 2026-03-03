@@ -1,14 +1,18 @@
-# 🎬 AI Movie Insight Builder
+# 🎬 AI Movie Audience Intelligence Platform
 
-> **AI-powered audience intelligence engine** — not just a movie lookup tool.
+> **Top 1% AI-powered audience intelligence engine** — not a movie lookup tool, a full analytics platform.
 
-Enter any IMDb ID and get AI-generated sentiment analysis, theme detection, emotion profiling, rewatchability scores, and audience type insights — all powered by GPT.
+Enter any IMDb ID and get AI-generated sentiment analysis, theme detection, emotion profiling, debate mode, audience persona, review highlights, comparative insights, reliability scoring, and AI-matched movie recommendations — all powered by GPT-4o-mini and rendered with Recharts.
 
 ---
 
 ## Product Philosophy
 
-This project is built as a **mini AI-powered audience intelligence engine** rather than a simple movie lookup tool. The system treats audience reviews as raw data and runs them through an AI pipeline to surface structured, actionable insights — the kind a studio executive or film critic would actually find useful.
+This project is built as a **production-grade AI audience intelligence engine** rather than a simple movie lookup tool. The system treats audience reviews as raw signal and runs them through a multi-stage AI pipeline to surface structured, actionable insights — the kind a studio executive, film critic, or data analyst would actually find useful.
+
+The platform operates in two modes:
+- **Basic view** — the essentials: sentiment, themes, emotions, rewatchability
+- **Executive view** — the full analytics suite: charts, debate mode, persona, comparative stats, recommendations, reliability meter
 
 ---
 
@@ -18,7 +22,7 @@ This project is built as a **mini AI-powered audience intelligence engine** rath
 User Input (IMDb ID)
         │
         ▼
-Next.js 14 Frontend (App Router)
+Next.js 16.1.6 Frontend (App Router + Turbopack)
         │
         ▼
 API Route → /api/movie/[id]
@@ -26,58 +30,70 @@ API Route → /api/movie/[id]
         ▼
 getMovieInsights() pipeline:
   1. Zod IMDb ID validation
-  2. Server memory cache check
-  3. OMDb API → title, poster, rating, plot
+  2. Server memory cache check (1-hour TTL)
+  3. OMDb API → title, poster, rating, plot, director, runtime
   4. TMDB API → IMDb → TMDB ID conversion
   5. TMDB API → cast (top 12 members)
-  6. TMDB API → audience reviews (up to 5 pages)
-  7. Review cleaning + 100 review limit + 4000 char budget
-  8. OpenAI GPT  → structured sentiment + insights JSON
-  9. Cache result (1-hour TTL)
- 10. Return FullMovieInsightResponse
+  6. TMDB API → audience reviews (up to 5 pages, ~100 reviews)
+  7. Review cleaning + 100 review cap + 4000 char budget
+  8. OpenAI GPT-4o-mini → 13-field structured JSON (2000 max_tokens)
+  9. Reliability score computed from review volume + sentiment variance
+ 10. Cache result → return FullMovieInsightResponse
         │
         ▼
-Frontend renders premium animated UI
+InsightsDashboard renders analytics UI with Basic/Executive toggle
 ```
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology | Why |
-|-------|-----------|-----|
-| Frontend | Next.js 14 (App Router) | Seamless SSR/CSR, file-based routing, API routes |
-| Language | TypeScript (strict) | Type safety, maintainability |
-| Styling | TailwindCSS + custom CSS variables | Rapid, scalable, themeable |
-| Animations | Framer Motion | Production-quality motion with minimal code |
-| AI | OpenAI GPT-3.5-turbo | Fast, cost-effective, JSON mode support |
+| Layer | Technology | Purpose |
+|-------|-----------|--------|
+| Frontend | Next.js 16.1.6 (App Router, Turbopack) | SSR + CSR, file-based routing, API routes |
+| Language | TypeScript (strict) | Full type safety, no `any` |
+| Styling | TailwindCSS + glassmorphism CSS utilities | Rapid, scalable, premium dark theme |
+| Animations | Framer Motion 11 | Staggered enters, AnimatePresence, spring physics |
+| Charts | Recharts | PieChart (sentiment), BarChart (aspects), custom tooltips |
+| AI | OpenAI GPT-4o-mini | Structured 13-field JSON analysis, 2000 tokens |
 | Movie Data | OMDb API | IMDb metadata (title, rating, poster, plot) |
-| Cast + Reviews | TMDB API | Rich cast data + audience review corpus |
-| Validation | Zod | Runtime schema validation, clean error messages |
+| Cast + Reviews | TMDB API | Cast grid + audience review corpus |
+| Validation | Zod | Runtime schema validation with clean error messages |
 | HTTP | Axios | Interceptors, timeout control, response typing |
-| Theming | next-themes | Persistent dark/light mode with SSR safety |
+| Theming | next-themes | Persistent dark/light mode, SSR-safe |
+| Testing | Jest 30 + ts-jest | 41 tests across 3 suites, 100% passing |
 
 ---
 
 ## Features
 
-### Core
-- Full movie metadata (poster, rating, plot, director, runtime, awards)
-- Cast grid with profile photos (12 top-billed actors)
-- AI-powered sentiment analysis (Positive / Mixed / Negative %)
+### Core Intelligence
+- Full movie metadata — poster, rating, plot, director, runtime, awards
+- Cast grid with profile photos (12 top-billed actors, staggered animation)
+- AI sentiment analysis — Positive / Mixed / Negative percentages
 - Animated sentiment bars with proportional widths
 - Key positive and criticism themes (badge-style tags)
-- Audience emotion profile
+- Audience emotion profile chips
 - Rewatchability indicator (High / Medium / Low)
 - Audience type insight paragraph
 
-### Advanced
-- **Controversy Score** — formula-derived metric showing how divisive a film is
-- **AI Confidence Level** — based on number of reviews analyzed (High / Medium / Low)
-- **Instant cache indicator** — fades out after 3 seconds when served from cache
-- **Search history** — last 5 searches persisted in `localStorage`, shown as dropdown
-- **Dark mode toggle** — persistent via `localStorage`, SSR-safe
-- **Skeleton loaders** — preview structure while data loads
+### Advanced Analytics (Executive Mode)
+- **Sentiment Charts** — Recharts PieChart for sentiment split + BarChart for 6 aspect scores (acting, story, visuals, pacing, emotional impact, overall) with custom glassmorphism tooltips
+- **Debate Mode** — Structured love vs. dislike two-column breakdown showing exactly what audiences fought over
+- **Audience Persona** — AI-generated archetype card (e.g., "The Cinephile", "The Action Fan") with dynamic emoji + genre inference
+- **Review Highlights** — Best positive quote and most critical negative quote extracted by AI from the review corpus
+- **Comparative Insight** — Single-sentence stat comparing this film to its genre average (color-coded positive/negative)
+- **Movie Recommendations** — 3 AI-matched similar films with genre tags, IMDb links, and analysis reasons
+- **Reliability Meter** — 0–100 score with animated bar and 3-factor breakdown (Review Volume, AI Confidence, Overall)
+- **Executive / Basic toggle** — Switch between full analytics and essentials view
+
+### Platform Engineering
+- **Controversy Score** — formula-derived divisiveness metric
+- **AI Confidence Level** — High / Medium / Low based on review count
+- **Cache indicator** — "Loaded from cache" badge fades after 3 seconds
+- **Search history** — last 5 searches persisted in `localStorage`
+- **Dark mode** — persistent, SSR-safe via next-themes
+- **Skeleton loaders** — structural preview while fetching
 - **Graceful error UI** — contextual hints per error code
 
 ---
@@ -92,8 +108,9 @@ Frontend renders premium animated UI
 ### Installation
 
 ```bash
-# 1. Clone or download the project
-cd ai-movie-insight-builder
+# 1. Clone the repository
+git clone https://github.com/Sathvik2005/movie-audience-intelligence-ai.git
+cd movie-audience-intelligence-ai
 
 # 2. Install dependencies
 npm install
@@ -135,41 +152,57 @@ Copy `.env.local.example` → `.env.local` and fill in:
 │   └── api/movie/[id]/route.ts # REST API endpoint
 │
 ├── components/
-│   ├── SearchBar.tsx           # Search input with history dropdown
-│   ├── MovieCard.tsx           # Poster + metadata + animated rating bar
-│   ├── CastList.tsx            # Staggered cast grid with images
-│   ├── SentimentSummary.tsx    # Animated bars + metric badges
-│   ├── InsightPanel.tsx        # Theme tags + emotion chips + audience insight
-│   ├── SkeletonLoader.tsx      # All skeleton variants + PageSkeleton
-│   ├── Loading.tsx             # Spinner with animated pipeline steps
-│   ├── ErrorDisplay.tsx        # Error UI with contextual hints
-│   ├── ThemeToggle.tsx         # Sun/Moon toggle button
-│   └── ThemeProvider.tsx       # next-themes wrapper
+│   ├── InsightsDashboard.tsx    # ★ Main analytics orchestrator (Basic/Executive toggle)
+│   ├── SentimentCharts.tsx      # ★ Recharts pie + aspect bar + emotion distribution
+│   ├── DebateMode.tsx           # ★ Love vs Dislike two-column debate card
+│   ├── AudiencePersona.tsx      # ★ AI archetype card with dynamic emoji
+│   ├── ReviewHighlights.tsx     # ★ Best positive + most critical quote side-by-side
+│   ├── ComparativeInsight.tsx   # ★ Genre-comparative stat callout
+│   ├── MovieRecommendations.tsx # ★ 3 AI-recommended similar films with links
+│   ├── ReliabilityMeter.tsx     # ★ 0-100 score with factor breakdown
+│   ├── AIReviewCard.tsx         # AI summary card
+│   ├── SearchBar.tsx            # Search input with history dropdown
+│   ├── MovieCard.tsx            # Poster + metadata + animated rating bar
+│   ├── CastList.tsx             # Staggered cast grid with images
+│   ├── SentimentSummary.tsx     # Animated bars + metric badges
+│   ├── InsightPanel.tsx         # Theme tags + emotion chips + audience insight
+│   ├── SkeletonLoader.tsx       # All skeleton variants + PageSkeleton
+│   ├── Loading.tsx              # Spinner with animated pipeline steps
+│   ├── ErrorDisplay.tsx         # Error UI with contextual hints
+│   ├── ThemeToggle.tsx          # Sun/Moon toggle
+│   └── ThemeProvider.tsx        # next-themes wrapper
 │
 ├── lib/
-│   ├── env.ts                  # Environment variable validation
-│   ├── omdb.ts                 # OMDb API client
-│   ├── tmdb.ts                 # TMDB API client (IMDb→TMDB, cast, reviews)
-│   ├── openai.ts               # OpenAI analysis + safe JSON parsing
-│   ├── cache.ts                # In-memory server cache with TTL
-│   ├── sentiment.ts            # Helpers + default insight builder
-│   ├── errorHandler.ts         # Centralized API error handler
-│   └── getMovieInsights.ts     # Core data pipeline orchestrator
+│   ├── openai.ts                # GPT-4o-mini pipeline: 13-field JSON, 5 parsers
+│   ├── sentiment.ts             # Helpers: reliabilityScore, labels, default builder
+│   ├── cache.ts                 # In-memory Map cache with 1-hour TTL
+│   ├── getMovieInsights.ts      # Core pipeline orchestrator
+│   ├── omdb.ts                  # OMDb API client
+│   ├── tmdb.ts                  # TMDB API client (IMDb→TMDB, cast, reviews)
+│   ├── errorHandler.ts          # Centralized API error handler
+│   └── env.ts                   # Environment variable validation
 │
 ├── types/
-│   ├── movie.ts                # MovieMetadata, CastMember, API response types
-│   ├── sentiment.ts            # Sentiment breakdown types
-│   └── insights.ts             # AIInsights, CacheEntry, API response types
+│   ├── insights.ts              # AIInsights (13 fields), CacheEntry, API response types
+│   ├── movie.ts                 # MovieMetadata, CastMember, FullMovieInsightResponse
+│   └── sentiment.ts             # Sentiment breakdown types
 │
 ├── utils/
-│   ├── validation.ts           # Zod IMDb ID schema
-│   └── helpers.ts              # cn(), formatNumber, search history utilities
+│   ├── validation.ts            # Zod IMDb ID schema
+│   └── helpers.ts               # cn(), formatNumber, search history utilities
+│
+├── __tests__/
+│   ├── cache.test.ts            # Cache TTL, eviction, hit/miss tests
+│   ├── helpers.test.ts          # Utility function tests
+│   └── validation.test.ts       # Zod schema validation tests
 │
 ├── .env.local.example
-├── next.config.ts
+├── next.config.mjs
 ├── tailwind.config.ts
 └── tsconfig.json
 ```
+
+> ★ = new component added in the Phase 1–9 platform upgrade
 
 ---
 
@@ -198,13 +231,31 @@ Copy `.env.local.example` → `.env.local` and fill in:
       "audienceTypeInsight": "...",
       "controversyScore": 22,
       "confidenceLevel": "High",
-      "reviewsAnalyzed": 87
+      "reviewsAnalyzed": 87,
+      "reviewHighlights": {
+        "bestPositive": "A groundbreaking cinematic experience...",
+        "bestNegative": "The third act felt rushed and..."
+      },
+      "comparativeInsight": "Scores 12% above average for sci-fi films of its era.",
+      "audiencePersona": "The Visionary Thinker — drawn to films that challenge perception.",
+      "debateMode": {
+        "lovedReasons": ["Revolutionary visuals", "Philosophical depth"],
+        "dislikedReasons": ["Slow first act", "Confusing for casual viewers"]
+      },
+      "recommendedMovies": [
+        { "title": "Inception", "imdbId": "tt1375666", "reason": "similarly mind-bending structure", "genre": "Sci-Fi" }
+      ],
+      "reliabilityScore": 84,
+      "aspectScores": {
+        "acting": 8, "story": 9, "visuals": 10, "pacing": 7,
+        "emotionalImpact": 8, "overall": 9
+      }
     },
     "reviewCount": 87,
     "fromCache": false
   },
   "fromCache": false,
-  "generatedAt": "2026-03-02T10:00:00.000Z"
+  "generatedAt": "2026-03-03T10:00:00.000Z"
 }
 ```
 
@@ -241,23 +292,24 @@ Copy `.env.local.example` → `.env.local` and fill in:
 
 ---
 
-## Assumptions
+## Technical Notes
 
-- TMDB API key is a **Bearer token** (API Read Access Token), not a v3 API key
-- OpenAI model: `gpt-3.5-turbo` with `response_format: { type: 'json_object' }`
-- Reviews are sourced from TMDB only (up to 5 pages, ~100 reviews max)
-- IMDb IDs must match pattern `tt` + 7–9 digits
+- **TMDB API key**: Must be the long-form **Bearer token** (API Read Access Token), not the short v3 key
+- **OpenAI model**: `gpt-4o-mini` with `response_format: { type: 'json_object' }`, `max_tokens: 2000`
+- **Review source**: TMDB only (up to 5 pages, ~100 reviews max, 4000 char budget for GPT)
+- **IMDb ID format**: `tt` followed by 7–9 digits (validated via Zod at runtime)
+- **Next.js 16**: API route `params` must be typed as `Promise<{ id: string }>` and awaited
 
 ---
 
 ## Future Extensions
 
-- [ ] Redis / Vercel KV for distributed cache
-- [ ] TMDB search by title (instead of requiring exact IMDb ID)
-- [ ] Historical trend analysis (compare audience reception over time)
-- [ ] Multi-movie comparison view
-- [ ] Export insights as PDF/image
-- [ ] Webhook integration for automated movie monitoring
+- [ ] Redis / Vercel KV for distributed persistent cache
+- [ ] TMDB title search (no IMDb ID required)
+- [ ] Historical trend analysis (audience reception over time)
+- [ ] Export insights as PDF / shareable image card
+- [ ] Webhook integration for automated film monitoring
+- [ ] Multi-movie head-to-head comparison view
 
 ---
 
