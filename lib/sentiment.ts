@@ -37,7 +37,35 @@ export function buildDefaultInsights(
       pacing: 0,
       emotionalImpact: 0,
     },
+    reviewHighlights: { bestPositive: "", bestNegative: "" },
+    comparativeInsight: "",
+    recommendedMovies: [],
+    audiencePersona: "",
+    debateMode: { lovedReasons: [], dislikedReasons: [] },
+    reliabilityScore: 0,
   };
+}
+
+/**
+ * Computes a 0-100 reliability score based on review count and sentiment variance.
+ * More reviews + tighter sentiment spread = higher reliability.
+ */
+export function computeReliabilityScore(
+  reviewCount: number,
+  positive: number,
+  mixed: number,
+  negative: number
+): number {
+  // Volume score: 0-60 points
+  const volumeScore = Math.min(60, (reviewCount / 80) * 60);
+
+  // Variance penalty: highly polarised sentiment reduces reliability
+  const variance = Math.sqrt(
+    ((positive - 50) ** 2 + (mixed - 25) ** 2 + (negative - 25) ** 2) / 3
+  );
+  const variancePenalty = Math.min(30, variance * 0.5);
+
+  return Math.round(Math.max(0, Math.min(100, volumeScore + 40 - variancePenalty)));
 }
 
 /**
@@ -111,4 +139,22 @@ export function getRewatchabilityColor(
     case "Low":
       return "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300";
   }
+}
+
+/**
+ * Returns a human-readable reliability label.
+ */
+export function getReliabilityLabel(score: number): string {
+  if (score >= 75) return "High";
+  if (score >= 45) return "Moderate";
+  return "Low";
+}
+
+/**
+ * Returns Tailwind color for reliability score.
+ */
+export function getReliabilityColor(score: number): string {
+  if (score >= 75) return "text-emerald-500";
+  if (score >= 45) return "text-amber-500";
+  return "text-rose-500";
 }

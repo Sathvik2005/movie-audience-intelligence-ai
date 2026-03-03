@@ -8,7 +8,7 @@ import { handleApiError } from "@/lib/errorHandler";
 import type { ApiSuccessResponse } from "@/types/insights";
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 /**
@@ -23,7 +23,8 @@ export async function GET(
   _request: NextRequest,
   { params }: RouteParams
 ): Promise<NextResponse> {
-  const rawId = params.id?.trim() ?? "";
+  const { id } = await params;
+  const rawId = id?.trim() ?? "";
 
   if (!rawId) {
     return NextResponse.json(

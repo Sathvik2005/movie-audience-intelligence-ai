@@ -9,12 +9,29 @@ import type {
 } from "@/types/sentiment";
 
 export interface AspectScores {
-  story: number;         // 0–10
-  acting: number;        // 0–10
-  direction: number;     // 0–10
-  visuals: number;       // 0–10
-  pacing: number;        // 0–10
-  emotionalImpact: number; // 0–10
+  story: number;            // 0–10
+  acting: number;           // 0–10
+  direction: number;        // 0–10
+  visuals: number;          // 0–10
+  pacing: number;           // 0–10
+  emotionalImpact: number;  // 0–10
+}
+
+export interface ReviewHighlights {
+  bestPositive: string;  // most compelling positive audience statement
+  bestNegative: string;  // most compelling critical audience statement
+}
+
+export interface DebateMode {
+  lovedReasons: string[];    // concrete reasons audiences loved it
+  dislikedReasons: string[]; // concrete reasons audiences disliked it
+}
+
+export interface RecommendedMovie {
+  title: string;
+  imdbId: string;
+  reason: string;
+  genre: string;
 }
 
 export interface AIInsights {
@@ -31,10 +48,23 @@ export interface AIInsights {
   controversyScore: number;
   confidenceLevel: ConfidenceLevel;
   reviewsAnalyzed: number;
-  /** GPT-written critic's synthesis of the film based on audience reviews */
+  /** GPT-written critic's synthesis based on audience reviews */
   aiReview: string;
   /** Aspect-based scores derived from review analysis */
   aspectScores: AspectScores;
+  // ─── Elite intelligence layer ─────────────────────────
+  /** Best positive + negative review snippets extracted by AI */
+  reviewHighlights: ReviewHighlights;
+  /** AI comparative insight vs genre average */
+  comparativeInsight: string;
+  /** 3 recommended similar movies based on genre & sentiment */
+  recommendedMovies: RecommendedMovie[];
+  /** AI-generated audience archetype persona */
+  audiencePersona: string;
+  /** Love vs dislike debate structure */
+  debateMode: DebateMode;
+  /** 0-100 reliability score based on review count and variance */
+  reliabilityScore: number;
 }
 
 export interface CacheEntry {

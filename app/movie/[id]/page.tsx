@@ -12,6 +12,7 @@ import { CastList } from "@/components/CastList";
 import { SentimentSummary } from "@/components/SentimentSummary";
 import { InsightPanel } from "@/components/InsightPanel";
 import { AIReviewCard } from "@/components/AIReviewCard";
+import { InsightsDashboard } from "@/components/InsightsDashboard";
 import { Loading } from "@/components/Loading";
 import { ErrorDisplay } from "@/components/ErrorDisplay";
 import { PageSkeleton } from "@/components/SkeletonLoader";
@@ -175,6 +176,12 @@ export default function MovieInsightPage() {
           <AIReviewCard
             insights={state.data.sentiment}
             movieTitle={state.data.movie.title}
+          />
+
+          {/* ── Intelligence Dashboard (charts, debate, persona, recs) ── */}
+          <InsightsDashboard
+            insights={state.data.sentiment}
+            movie={state.data.movie}
           />
 
           {/* Footer meta */}

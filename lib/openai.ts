@@ -1,11 +1,11 @@
 // ──────────────────────────────────────────────────────────
-// lib/openai.ts — OpenAI sentiment and insight analysis
+// lib/openai.ts — OpenAI deep intelligence analysis engine
 // ──────────────────────────────────────────────────────────
 
 import OpenAI from "openai";
-import type { AIInsights } from "@/types/insights";
+import type { AIInsights, RecommendedMovie } from "@/types/insights";
 import { env } from "@/lib/env";
-import { buildDefaultInsights } from "@/lib/sentiment";
+import { buildDefaultInsights, computeReliabilityScore } from "@/lib/sentiment";
 
 const MAX_REVIEW_CHARS = 6_000;
 const MAX_REVIEWS = 120;
@@ -43,16 +43,11 @@ function prepareReviewPayload(reviews: string[]): {
   return { payload: aggregated, count: included };
 }
 
-const SYSTEM_PROMPT = `You are an expert film critic and professional audience intelligence analyst.
-You apply rigorous sentiment analysis techniques including:
-- Aspect-based sentiment analysis (story, acting, direction, visuals, pacing, emotional resonance)
-- Sentiment intensity weighting (longer, more detailed reviews carry more weight)
-- Contradiction detection (surface disagreements between reviewer groups)
-- Emotional tone mapping to identify the dominant feelings expressed
-You write balanced, specific, evidence-based analysis grounded strictly in what reviewers actually said.
+const SYSTEM_PROMPT = `You are an expert film critic and audience intelligence analyst.
+Apply rigorous sentiment analysis: aspect-based scoring, intensity weighting, contradiction detection, emotional tone mapping.
 You MUST return ONLY valid JSON — no markdown, no commentary, no code fences.`;
 
-interface MovieContext {
+export interface MovieContext {
   title: string;
   year: string;
   director: string;
@@ -62,38 +57,52 @@ interface MovieContext {
 function buildUserPrompt(movie: MovieContext, reviews: string): string {
   return `Movie: "${movie.title}" (${movie.year}) | Director: ${movie.director} | Genre: ${movie.genre}
 
-Analyze the audience reviews below using aspect-based sentiment analysis.
-Return ONLY this exact JSON (no extra fields, no markdown, no code fences):
+Analyze the audience reviews below and return ONLY this exact JSON (no extra fields, no markdown):
 
 {
-  "summary": "2-3 sentence synthesis of overall audience reception, citing concrete strengths and/or weaknesses",
+  "summary": "2-3 sentence synthesis of overall audience reception with concrete strengths/weaknesses",
   "positivePercentage": <integer 0-100>,
   "mixedPercentage": <integer 0-100>,
   "negativePercentage": <integer 0-100>,
   "overallSentiment": "Positive" | "Mixed" | "Negative",
   "aspectScores": {
-    "story": <integer 0-10 reflecting audience opinion of plot/narrative>,
-    "acting": <integer 0-10 reflecting audience opinion of performances>,
-    "direction": <integer 0-10 reflecting audience opinion of direction/cinematography>,
-    "visuals": <integer 0-10 reflecting audience opinion of visuals/effects/aesthetics>,
-    "pacing": <integer 0-10 reflecting audience opinion of pacing/editing/flow>,
-    "emotionalImpact": <integer 0-10 reflecting how emotionally resonant reviewers found the film>
+    "story": <integer 0-10>,
+    "acting": <integer 0-10>,
+    "direction": <integer 0-10>,
+    "visuals": <integer 0-10>,
+    "pacing": <integer 0-10>,
+    "emotionalImpact": <integer 0-10>
   },
   "keyPositiveThemes": ["specific praised element", ...],
   "keyCriticismThemes": ["specific criticized element", ...],
-  "audienceEmotions": ["dominant emotion from reviews", ...],
+  "audienceEmotions": ["dominant emotion 1", ...],
   "rewatchability": "High" | "Medium" | "Low",
-  "audienceTypeInsight": "1-2 sentences on who would most enjoy this film based on review patterns",
-  "aiReview": "Write a compelling 4-5 sentence critic synthesis of this film as seen through audience eyes. Be specific — name story elements, performances, and emotional beats reviewers mentioned. Acknowledge both strengths and weaknesses. Do NOT use bullet points."
+  "audienceTypeInsight": "1-2 sentences on who would enjoy this film",
+  "aiReview": "4-5 sentence flowing critic synthesis — specific, no bullet points",
+  "reviewHighlights": {
+    "bestPositive": "most compelling positive audience statement (direct quote or close paraphrase)",
+    "bestNegative": "most compelling critical audience statement (direct quote or close paraphrase)"
+  },
+  "comparativeInsight": "one sentence comparing sentiment to genre average, e.g. Audience enthusiasm is 22% above typical sci-fi films",
+  "audiencePersona": "2-3 sentence audience archetype description based on review patterns",
+  "debateMode": {
+    "lovedReasons": ["concrete reason 1", "reason 2", "reason 3"],
+    "dislikedReasons": ["concrete reason 1", "reason 2", "reason 3"]
+  },
+  "recommendedMovies": [
+    {"title": "Movie Title", "imdbId": "ttXXXXXXX", "reason": "because...", "genre": "Genre"},
+    {"title": "Movie Title 2", "imdbId": "ttXXXXXXX", "reason": "because...", "genre": "Genre"},
+    {"title": "Movie Title 3", "imdbId": "ttXXXXXXX", "reason": "because...", "genre": "Genre"}
+  ]
 }
 
 Rules:
 - positivePercentage + mixedPercentage + negativePercentage MUST equal exactly 100
-- overallSentiment must correspond to the dominant percentage bucket
-- aspectScores must reflect actual review content — do not guess
-- keyPositiveThemes and keyCriticismThemes: 3-6 concrete items each (not vague)
-- audienceEmotions: 3-5 items (actual emotions mentioned by reviewers)
-- aiReview must be flowing prose, specific to this film and these reviews
+- overallSentiment must match the dominant bucket
+- keyPositiveThemes and keyCriticismThemes: 3-6 concrete items each
+- audienceEmotions: 3-5 actual emotions from reviews
+- recommendedMovies: use real IMDb IDs (ttXXXXXXX) for well-known films in same genre/tone
+- debateMode reasons must be specific and evidence-based from reviews
 - Return ONLY the JSON object
 
 Audience Reviews:
@@ -132,7 +141,7 @@ export async function analyzeReviews(
         { role: "user", content: buildUserPrompt(movie, payload) },
       ],
       temperature: 0.25,
-      max_tokens: 1_200,
+      max_tokens: 2_000,
       response_format: { type: "json_object" },
     });
 
@@ -212,11 +221,11 @@ function safeParseAIResponse(raw: string | null, count: number): AIInsights {
     normalizedNegative
   );
 
-  const controversyScore = calculateControversyScore(
-    normalizedPositive,
-    normalizedMixed
-  );
+  const controversyScore = calculateControversyScore(normalizedPositive, normalizedMixed);
   const confidenceLevel = resolveConfidenceLevel(count);
+  const reliabilityScore = computeReliabilityScore(
+    count, normalizedPositive, normalizedMixed, normalizedNegative
+  );
 
   return {
     summary:
@@ -241,6 +250,14 @@ function safeParseAIResponse(raw: string | null, count: number): AIInsights {
     aiReview:
       typeof parsed.aiReview === "string" ? parsed.aiReview.trim() : "",
     aspectScores: resolveAspectScores(parsed.aspectScores),
+    reviewHighlights: resolveReviewHighlights(parsed.reviewHighlights),
+    comparativeInsight:
+      typeof parsed.comparativeInsight === "string" ? parsed.comparativeInsight.trim() : "",
+    audiencePersona:
+      typeof parsed.audiencePersona === "string" ? parsed.audiencePersona.trim() : "",
+    debateMode: resolveDebateMode(parsed.debateMode),
+    recommendedMovies: resolveRecommendedMovies(parsed.recommendedMovies),
+    reliabilityScore,
   };
 }
 
@@ -298,9 +315,7 @@ function clampScore(value: unknown): number {
   return Math.min(10, Math.max(0, Math.round(n)));
 }
 
-function resolveAspectScores(
-  raw: unknown
-): AIInsights["aspectScores"] {
+function resolveAspectScores(raw: unknown): AIInsights["aspectScores"] {
   if (typeof raw !== "object" || raw === null) {
     return { story: 5, acting: 5, direction: 5, visuals: 5, pacing: 5, emotionalImpact: 5 };
   }
@@ -313,4 +328,44 @@ function resolveAspectScores(
     pacing: clampScore(r.pacing),
     emotionalImpact: clampScore(r.emotionalImpact),
   };
+}
+
+function resolveReviewHighlights(raw: unknown): AIInsights["reviewHighlights"] {
+  if (typeof raw !== "object" || raw === null) {
+    return { bestPositive: "", bestNegative: "" };
+  }
+  const r = raw as Record<string, unknown>;
+  return {
+    bestPositive: typeof r.bestPositive === "string" ? r.bestPositive.trim() : "",
+    bestNegative: typeof r.bestNegative === "string" ? r.bestNegative.trim() : "",
+  };
+}
+
+function resolveDebateMode(raw: unknown): AIInsights["debateMode"] {
+  if (typeof raw !== "object" || raw === null) {
+    return { lovedReasons: [], dislikedReasons: [] };
+  }
+  const r = raw as Record<string, unknown>;
+  return {
+    lovedReasons: ensureStringArray(r.lovedReasons),
+    dislikedReasons: ensureStringArray(r.dislikedReasons),
+  };
+}
+
+function resolveRecommendedMovies(raw: unknown): RecommendedMovie[] {
+  if (!Array.isArray(raw)) return [];
+  return (raw as unknown[])
+    .filter((item): item is Record<string, unknown> =>
+      typeof item === "object" && item !== null)
+    .slice(0, 3)
+    .map((item) => ({
+      title: typeof item.title === "string" ? item.title.trim() : "Unknown",
+      imdbId:
+        typeof item.imdbId === "string" && /^tt\d+/.test(item.imdbId)
+          ? item.imdbId
+          : "",
+      reason: typeof item.reason === "string" ? item.reason.trim() : "",
+      genre: typeof item.genre === "string" ? item.genre.trim() : "",
+    }))
+    .filter((m) => m.title !== "Unknown");
 }

@@ -54,6 +54,20 @@ export function invalidateCacheEntry(imdbId: string): void {
 }
 
 /**
+ * Clears all entries from the cache (useful for testing).
+ */
+export function clearCache(): void {
+  memoryCache.clear();
+}
+
+/**
+ * Returns the number of entries currently in the cache.
+ */
+export function getCacheSize(): number {
+  return memoryCache.size;
+}
+
+/**
  * Returns cache statistics for debugging.
  */
 export function getCacheStats(): {
